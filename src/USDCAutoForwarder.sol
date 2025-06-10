@@ -23,13 +23,13 @@ contract USDCAutoForwarder is ReentrancyGuard, Ownable {
         uint256 amount,
         uint256 timestamp
     );
-    
+
     event USDCForwarded(
         address indexed recipient,
         uint256 amount,
         uint256 timestamp
     );
-    
+
     event RecipientUpdated(
         address indexed oldRecipient,
         address indexed newRecipient
