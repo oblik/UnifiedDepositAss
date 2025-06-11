@@ -90,7 +90,7 @@ node services/index.js
 Send USDC to the deployed contract for testing:
 
 ```bash
-forge script script/DeployCreate2.s.sol:MultiChainDeploymentScript --rpc-url "RPC_URL_RESPECTIVE_CHAIN" --private-key "PRIVATE_KEY" --broadcast
+forge script script/DepositUSDC.s.sol:DepositUSDCScript --rpc-url "RPC_URL_RESPECTIVE_CHAIN" --private-key "PRIVATE_KEY" --broadcast
 ```
 
 
