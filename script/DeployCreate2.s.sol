@@ -34,7 +34,7 @@ contract MultiChainDeploymentScript is Script {
     );
 
     // Constants
-    bytes32 public constant DEPLOYMENT_SALT = 0x0000000000000000000000000000000000000000000000000000000000000006;
+    bytes32 public constant DEPLOYMENT_SALT = 0x0000000000000000000000000000000000000000000000000000000000000007;
 
     // Chain configurations
     function getChainConfigs() internal pure returns (ChainConfig[] memory) {
@@ -44,7 +44,7 @@ contract MultiChainDeploymentScript is Script {
         configs[0] = ChainConfig({
             chainId: 421614,
             name: "Arbitrum Sepolia",
-            usdcToken: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d, // USDC.e on Arbitrum Sepolia (bridged from Ethereum Sepolia)
+            usdcToken: 0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d, // USDC on Arbitrum Sepolia (bridged from Ethereum Sepolia)
             recipient: 0xF8591FaFE75eE95499D0169E2d19142f27de6542
         });
 
@@ -91,7 +91,6 @@ contract MultiChainDeploymentScript is Script {
 
         console.log("Deploying on:", currentConfig.name);
         console.log("USDC Token:", currentConfig.usdcToken);
-        console.log("Recipient:", currentConfig.recipient);
 
         // Deploy the contract
         address deployedAddress = deployForwarder(DEPLOYMENT_SALT, currentConfig.recipient);
@@ -104,17 +103,11 @@ contract MultiChainDeploymentScript is Script {
         for (uint256 i = 0; i < configs.length; i++) {
             address predictedAddress = computeAddress(DEPLOYMENT_SALT, configs[i].recipient, msg.sender);
 
-            if (configs[i].chainId == currentChainId) {
-                console.log(configs[i].name, "- Deployed at:", predictedAddress);
-            } else {
-                console.log(configs[i].name, "- Will deploy at:", predictedAddress);
-            }
         }
 
         console.log("\n=== Deployment Complete ===");
         console.log("Contract Address:", deployedAddress);
         console.log("USDC Token Set:", currentConfig.usdcToken);
-        console.log("Recipient:", currentConfig.recipient);
     }
 
     /**
@@ -131,13 +124,9 @@ contract MultiChainDeploymentScript is Script {
 
         vm.startBroadcast();
 
-        // Deploy using CREATE2 (only recipient in constructor now)
-        // msg.sender will be the owner due to Ownable(msg.sender) in constructor
         deployed = address(new USDCAutoForwarder{salt: salt}(recipient));
 
         console.log("Contract deployed at:", deployed);
-        console.log("Contract owner will be:", msg.sender);
-        console.log("Gas used for deployment:", gasleft());
 
         vm.stopBroadcast();
 
@@ -196,87 +185,4 @@ contract MultiChainDeploymentScript is Script {
         predicted = address(uint160(uint256(hash)));
     }
 
-    /**
-     * @dev Utility function to verify deployment across all chains
-     */
-    function verifyAllChainAddresses() external view {
-        ChainConfig[] memory configs = getChainConfigs();
-
-        console.log("\n=== All Chain Addresses ===");
-        for (uint256 i = 0; i < configs.length; i++) {
-            address predictedAddress = computeAddress(DEPLOYMENT_SALT, configs[i].recipient, msg.sender);
-            console.log(configs[i].name, ":", predictedAddress);
-        }
-    }
-
-    /**
-     * @dev Get deployment information for a specific chain
-     */
-    function getDeploymentInfo(uint256 chainId)
-        external
-        view
-        returns (string memory chainName, address usdcToken, address recipient, address predictedAddress)
-    {
-        ChainConfig[] memory configs = getChainConfigs();
-
-        for (uint256 i = 0; i < configs.length; i++) {
-            if (configs[i].chainId == chainId) {
-                chainName = configs[i].name;
-                usdcToken = configs[i].usdcToken;
-                recipient = configs[i].recipient;
-                predictedAddress = computeAddress(DEPLOYMENT_SALT, recipient, msg.sender);
-                return (chainName, usdcToken, recipient, predictedAddress);
-            }
-        }
-        revert("Chain not supported");
-    }
-
-    /**
-     * @dev Deploy on all configured chains (for testing purposes)
-     * @notice This is a utility function for testing cross-chain deployment
-     */
-    function deployOnAllChains() external {
-        ChainConfig[] memory configs = getChainConfigs();
-        
-        console.log("\n=== Deploying on All Chains ===");
-        for (uint256 i = 0; i < configs.length; i++) {
-            console.log("\nChain:", configs[i].name);
-            
-            // Note: This would require switching networks manually in practice
-            // This is just for address calculation verification
-            address predictedAddress = computeAddress(DEPLOYMENT_SALT, configs[i].recipient, msg.sender);
-            console.log("Will deploy at:", predictedAddress);
-            console.log("USDC Token:", configs[i].usdcToken);
-            console.log("Recipient:", configs[i].recipient);
-        }
-    }
-
-    /**
-     * @dev Verify contract state after deployment
-     */
-    function verifyContractState(address payable contractAddress) external view {
-        USDCAutoForwarder forwarder = USDCAutoForwarder(payable(contractAddress));
-        
-        console.log("\n=== Contract State Verification ===");
-        console.log("Contract Address:", contractAddress);
-        console.log("Owner:", forwarder.owner());
-        console.log("Recipient:", forwarder.recipient());
-        console.log("USDC Address:", address(forwarder.usdc()));
-        console.log("USDC Set Status:", forwarder.usdcSetStatus());
-        console.log("Current Balance:", forwarder.getBalance());
-    }
-
-    /**
-     * @dev Emergency function to update recipient if needed
-     */
-    function updateRecipient(address payable  contractAddress, address newRecipient) external {
-        vm.startBroadcast();
-        
-        USDCAutoForwarder forwarder = USDCAutoForwarder(payable(contractAddress));
-        forwarder.updateRecipient(newRecipient);
-        
-        console.log("Recipient updated to:", newRecipient);
-        
-        vm.stopBroadcast();
-    }
 }

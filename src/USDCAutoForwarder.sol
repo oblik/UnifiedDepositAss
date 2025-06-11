@@ -17,9 +17,7 @@ contract USDCAutoForwarder is ReentrancyGuard, Ownable {
 
     // Events
     event USDCDeposited(address indexed sender, uint256 amount, uint256 timestamp);
-
     event USDCForwarded(address indexed recipient, uint256 amount, uint256 timestamp);
-
     event RecipientUpdated(address indexed oldRecipient, address indexed newRecipient);
 
     // Custom errors
@@ -39,10 +37,12 @@ contract USDCAutoForwarder is ReentrancyGuard, Ownable {
         recipient = _recipient;
     }
 
+    // We will set it onlyOwner not doing doing now for testing purpose
     function setUSDCAddress(address _usdcToken) external  {
         if (_usdcToken == address(0)) revert ZeroAddress();
         // if (!usdcSetStatus) revert USDCAlreadySet();
         usdc = IERC20(_usdcToken);
+        // usdcSetStatus = true;
     }
 
     /**

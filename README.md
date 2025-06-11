@@ -1,123 +1,97 @@
-# Unified Deposit Backend Service
+# Unified Deposit - Multi-Chain USDC Auto Forwarder
 
-This backend service monitors USDC deposits across three different test networks (Arbitrum Sepolia, Optimism Sepolia, and Base Sepolia) and automatically forwards them to a specified recipient address.
+## Project Description
 
-## Features
+The Unified Deposit project is a multi-chain USDC auto-forwarding system that enables seamless USDC deposits across multiple blockchain networks with automatic forwarding to a specified recipient address. The system is designed to deploy identical smart contracts at the same deterministic address across different chains using CREATE2, ensuring a unified user experience regardless of the blockchain network.
 
-- Monitors USDC deposits on multiple chains simultaneously
-- Automatically forwards deposits to the specified recipient
-- Gas price monitoring to ensure cost-effective transactions
-- Comprehensive logging system
-- Graceful shutdown handling
-- Environment-based configuration
 
-## Prerequisites
+## Contract Functions
 
-- Node.js v16 or higher
-- Access to RPC endpoints for all three networks
-- Private key with sufficient native tokens for gas fees
-- Deployed USDCAutoForwarder contract addresses
-- USDC token contract addresses for each network
+### Main Functions
 
-## Installation
+- `depositUSDC(uint256 amount)`: Deposit USDC to the contract
+- `forwardUSDC(uint256 amount)`: Forward USDC to recipient (called by backend)
+- `setUSDCAddress(address _usdcToken)`: Set the USDC token address
+- `updateRecipient(address newRecipient)`: Update the recipient address (owner only)
+- `getBalance()`: Get current USDC balance in the contract
 
-1. Clone the repository:
+### Events
 
-   ```bash
-   git clone <repository-url>
-   cd unified-deposit
+- `USDCDeposited(address indexed sender, uint256 amount, uint256 timestamp)`
+- `USDCForwarded(address indexed recipient, uint256 amount, uint256 timestamp)`
+- `RecipientUpdated(address indexed oldRecipient, address indexed newRecipient)`
+
+
+### Workflow
+
+1. **Deployment Phase**:
+
+   - Deploy contracts on all target chains using the same salt
+   - Configure USDC token addresses for each chain
+   - Verify identical addresses across networks
+
+2. **Operation Phase**:
+
+   - Users deposit USDC to the contract on any supported chain
+   - Backend service detects deposit events
+   - Service automatically calls `forwardUSDC()` to send funds to recipient
+   - All transactions are logged and monitored
+
+3. **Monitoring Phase**:
+   - Continuous blockchain monitoring via Moralis webhooks
+   - Real-time balance tracking
+   - Error handling and retry mechanisms
+
+
+1. Clone the repository
+2. Set up environment variables in `.env`:
+   ```
+   MORALIS_API_KEY=your_moralis_api_key
+   CONTRACT_ADDRESS=deployed_contract_address
+   ARBITRUM_SEPOLIA_RPC=your_arbitrum_rpc_url
+   OPTIMISM_SEPOLIA_RPC=your_optimism_rpc_url
+   BASE_SEPOLIA_RPC=your_base_rpc_url
    ```
 
-2. Install dependencies:
+## Scripts
 
-   ```bash
-   npm install
-   ```
+### To Deploy Contracts
 
-3. Create and configure environment variables:
+Deploy the USDCAutoForwarder contract on each supported network:
 
-   ```bash
-   cp .env.example .env
-   ```
+**Arbitrum Sepolia:**
 
-   Edit the `.env` file and fill in all required values:
+```bash
+forge script script/DeployCreate2.s.sol:MultiChainDeploymentScript --rpc-url "YOUR_RPC_URL_ARBITRUM" --broadcast --private-key "PRIVATE_KEY"
+```
 
-   - RPC URLs for each network
-   - Private key for the forwarder account
-   - Contract addresses
-   - Optional gas settings
+**Optimism Sepolia:**
 
-## Configuration
+```bash
+forge script script/DeployCreate2.s.sol:MultiChainDeploymentScript --rpc-url "YOUR_RPC_URL_OPTIMISM" --broadcast --private-key "PRIVATE_KEY"
+```
 
-The following environment variables are required:
+**Base Sepolia:**
 
-- `ARBITRUM_SEPOLIA_RPC_URL`: RPC endpoint for Arbitrum Sepolia
-- `OPTIMISM_SEPOLIA_RPC_URL`: RPC endpoint for Optimism Sepolia
-- `BASE_SEPOLIA_RPC_URL`: RPC endpoint for Base Sepolia
-- `FORWARDER_PRIVATE_KEY`: Private key of the account that will trigger forwarding
-- `USDC_FORWARDER_ADDRESS`: Address of the deployed USDCAutoForwarder contract
-- `USDC_TOKEN_ADDRESS_ARBITRUM`: USDC token address on Arbitrum Sepolia
-- `USDC_TOKEN_ADDRESS_OPTIMISM`: USDC token address on Optimism Sepolia
-- `USDC_TOKEN_ADDRESS_BASE`: USDC token address on Base Sepolia
+```bash
+forge script script/DeployCreate2.s.sol:MultiChainDeploymentScript --rpc-url "YOUR_RPC_URL_BASE" --broadcast --private-key "PRIVATE_KEY"
+```
 
-Optional configuration:
+### To Start the Backend Service
 
-- `MAX_GAS_PRICE`: Maximum gas price in gwei (default: 50)
-- `GAS_LIMIT`: Gas limit for forwarding transactions (default: 300000)
+Start the monitoring and auto-forwarding service:
 
-## Running the Service
+```bash
+node services/index.js
+```
 
-1. Start the service in production mode:
+### To Run Script to Send Funds to the Contract
 
-   ```bash
-   npm start
-   ```
+Send USDC to the deployed contract for testing:
 
-2. Start the service in development mode (with auto-reload):
-   ```bash
-   npm run dev
-   ```
+```bash
+forge script script/DeployCreate2.s.sol:MultiChainDeploymentScript --rpc-url "RPC_URL_RESPECTIVE_CHAIN" --private-key "PRIVATE_KEY" --broadcast
+```
 
-## Monitoring and Logs
 
-The service uses Winston for logging and creates two log files:
 
-- `combined.log`: Contains all log levels
-- `error.log`: Contains only error logs
-
-Logs are also output to the console with color coding based on log level.
-
-## Architecture
-
-The service consists of several key components:
-
-1. `ChainMonitor`: Handles monitoring and forwarding for a single chain
-2. `UnifiedDepositMonitor`: Manages multiple chain monitors
-3. Configuration management with environment variables
-4. Logging system for tracking operations and errors
-
-## Error Handling
-
-The service includes comprehensive error handling:
-
-- Network connectivity issues
-- Contract interaction errors
-- Gas price monitoring
-- Graceful shutdown on process termination
-
-## Development
-
-To contribute or modify the service:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
-## License
-
-[MIT License](LICENSE)
-
-## Support
-
-For support or questions, please open an issue in the repository.
